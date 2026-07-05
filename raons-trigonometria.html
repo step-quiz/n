@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Step Quiz">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="theme-color" content="#f8fafc">
+
+    <meta name="description" content="Activitat interactiva de matemàtiques — Step Quiz">
+    <link rel="icon" href="icon.png">
+    <title>Trigonometria — Valors exactes</title>
+
+    <script>
+        window.APP_CONFIG = {
+            defaultSessions:      1,
+            defaultOperations:    8,
+            defaultIntents:       4,
+            defaultEnllocMitjana: 1
+        };
+    </script>
+    <script src="js/fixed-sessions.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/config.js"></script>
+    <link rel="stylesheet" href="css/shared.css">
+    <link rel="stylesheet" href="css/raons-trigonometria.css">
+    <link rel="stylesheet" href="css/chromebook.css">
+</head>
+<body>
+
+<div class="title-row">
+    <a href="index.html" class="home-icon-link" title="Tornar a l'inici" aria-label="Tornar a l'inici">
+        <img src="icon.png" alt="Inici">
+    </a>
+    <h1>Trigonometria</h1>
+</div>
+
+<div class="panel" id="main-panel">
+    <div id="game-screen" style="display:none;">
+
+        <div class="header-info">
+            <div class="header-left">
+                <div class="session-text" id="session-display">Sessió 1 de 1</div>
+                <div class="level-text"   id="lvl-display">Pregunta 1 de 8</div>
+            </div>
+            <div class="score-text"       id="score-display">Punts: 0</div>
+            <div class="attempts-counter" id="attempts-display">Intents: 4</div>
+        </div>
+
+        <!-- Zona del problema: cercle unitat + expressió -->
+        <div class="problem-box" id="problem-box">
+            <div class="circle-and-expression">
+                <svg id="unit-circle-svg" viewBox="0 0 200 200"
+                     xmlns="http://www.w3.org/2000/svg"
+                     aria-label="Cercle trigonomètric" role="img">
+                </svg>
+                <div class="expression-display">
+                    <div class="trig-expression" id="trig-expression" aria-live="polite"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panell de resolució pas a pas -->
+        <div class="resolution-panel" id="resolution-panel">
+            <div class="step-instruction" id="step-instruction" aria-live="polite"></div>
+            <div class="step-container" id="step-value">
+                <div class="value-buttons" id="value-buttons"
+                     role="group" aria-label="Valor exacte">
+                    <!-- Omplert dinàmicament -->
+                </div>
+            </div>
+        </div>
+
+    </div><!-- /game-screen -->
+</div><!-- /panel -->
+
+<script src="vendor/native/native-bridge.js"></script>
+<script src="js/game-core.js"></script>
+<script src="js/trigonometria/raons-trigonometria.js"></script>
+<script>
+    injectSharedHTML();
+    validateConfig();
+    startGame();
+</script>
+</body>
+</html>

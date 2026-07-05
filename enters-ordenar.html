@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Step Quiz">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="theme-color" content="#f8fafc">
+
+    <meta name="description" content="Activitat interactiva de matemàtiques — Ordenar Enters">
+    <link rel="icon" href="icon.png">
+    <title>Ordenar Enters</title>
+
+    <script>
+        window.APP_CONFIG = {
+            defaultSessions:      1,
+            defaultOperations:    6,
+            defaultIntents:       4,
+            defaultEnllocMitjana: 1
+        };
+    </script>
+    <script src="js/fixed-sessions.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/config.js"></script>
+    <link rel="stylesheet" href="css/shared.css">
+
+    <style>
+        :root {
+            --bg-color:      #f8fafc;
+            --primary:       #0369a1;
+            --primary-light: #e0f2fe;
+            --primary-hover: #2563eb;
+        }
+
+        .expression-box {
+            padding: 40px 20px; text-align: center; display: flex;
+            justify-content: center; align-items: center; flex-wrap: wrap;
+            gap: 10px; font-size: 1.8em; font-family: 'Courier New', Courier, monospace;
+            font-weight: bold; min-height: 120px; line-height: 1.5;
+        }
+
+        .token-num { padding: 10px; transition: all 0.3s; }
+        .token-num.highlight      { background-color: var(--primary-light); border-radius: 6px; }
+        .token-num.resolved-num   { color: var(--primary-hover); }
+
+        .token-op {
+            background-color: #f1f5f9; border: 2px solid var(--border-heavy);
+            border-radius: 8px; padding: 5px 15px; color: #334155;
+            cursor: pointer; transition: all 0.2s ease;
+            font-family: 'Courier New', Courier, monospace; font-weight: bold;
+            font-size: 1em; touch-action: manipulation;
+        }
+        .token-op:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+        @media (hover: hover) {
+            .token-op:hover {
+                background-color: var(--primary-hover); border-color: #1e40af;
+                color: white; transform: scale(1.1); box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+            }
+        }
+        .token-op:active        { transform: scale(0.95); }
+        .token-op.error-shake   { background-color: var(--danger-light) !important; border-color: var(--danger) !important; color: var(--danger) !important; animation: shake 0.2s; }
+        .token-op.auto-selected { background-color: var(--primary-light); border-color: var(--primary); color: #334155; }
+
+        input[type="text"].inline-input {
+            width: 80px; font-family: inherit; font-size: 1em;
+            font-weight: bold; padding: 5px; text-align: center;
+            border: 3px solid var(--primary); border-radius: 8px; outline: none;
+            background-color: white; color: var(--primary-hover);
+            margin: 0 5px; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+            transition: all 0.2s ease;
+        }
+        input[type="text"].inline-input:focus { border-color: #0ea5e9; box-shadow: 0 0 0 3px var(--primary-light); }
+        input[type="text"].inline-input.error-shake { background-color: var(--danger-light); border-color: var(--danger); color: var(--danger); animation: shake 0.2s; }
+
+        .op-instruction { display: none; padding: 0 20px 14px 20px; text-align: center; color: #475569; font-weight: 600; font-size: 1em; }
+        .op-instruction.active { display: block; }
+
+        .resolution-panel {
+            background-color: var(--bg-color); border-top: 1px solid var(--border-color);
+            padding: 25px 20px; display: none; flex-direction: column;
+            align-items: center; width: 100%;
+        }
+
+        .sub-problem {
+            font-size: 1.5em; font-family: monospace; font-weight: bold;
+            color: var(--primary); margin-bottom: 20px; letter-spacing: 2px; text-align: center;
+        }
+
+        .step-container { display: none; flex-direction: column; align-items: center; width: 100%; animation: fadeIn 0.3s; }
+        .step-container.active { display: flex; }
+
+        .step-title { font-size: 1.1em; color: #475569; margin-bottom: 15px; font-weight: bold; text-align: center; }
+
+        .sign-buttons { display: flex; gap: 15px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center; width: 100%; }
+
+        .btn-sign {
+            padding: 12px 20px; font-size: 1.1em; font-weight: bold; border-radius: 8px;
+            border: 2px solid var(--border-heavy); background: white; color: #334155;
+            cursor: pointer; transition: 0.2s; text-transform: capitalize;
+            flex: 1; min-width: 80px; max-width: 150px; text-align: center; touch-action: manipulation;
+        }
+        .btn-narrow { max-width: 105px !important; }
+        
+        .btn-sign:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+        @media (hover: hover) {
+            .btn-sign:hover { background: var(--primary-light); border-color: #0ea5e9; color: var(--primary); transform: translateY(-2px); }
+        }
+        .btn-sign:active      { transform: scale(0.95); }
+        .btn-sign.error-shake { background-color: var(--danger-light); border-color: var(--danger); color: var(--danger); animation: shake 0.2s; }
+        .btn-sign.selected    { background-color: var(--primary-light); border-color: var(--primary); color: var(--primary-hover); transform: scale(0.95); box-shadow: inset 0 2px 4px rgba(0,0,0,0.1); }
+
+        .value-input-group { display: flex; align-items: center; justify-content: center; width: 100%; }
+
+        @media (max-width: 480px) {
+            .expression-box { font-size: 1.3em; padding: 20px 10px; gap: 6px; min-height: 80px; }
+            .token-num  { padding: 5px; }
+            .token-op   { font-size: 0.9em; padding: 6px 10px; }
+            input[type="text"].inline-input { width: 60px; padding: 2px; border-width: 2px; }
+            .resolution-panel { padding: 20px 15px; }
+            .sub-problem { font-size: 1.3em; }
+            .sign-buttons { gap: 8px; }
+            .btn-sign   { padding: 12px 5px; font-size: 0.95em; min-width: 0; }
+            .btn-submit { padding: 12px 30px; font-size: 1em; }
+        }
+        
+        @media (max-width: 350px) {
+            .expression-box { font-size: 1.1em; gap: 4px; }
+            .btn-sign { font-size: 0.85em; }
+            #r3-grid { 
+                transform: scale(0.85); 
+                transform-origin: top center; 
+                margin-bottom: -20px !important; 
+            }
+        }
+
+        @keyframes attemptsBlink {
+            0%, 100% { background-color: #fef3c7; border-color: #d1d5db; color: #334155; }
+            50%      { background-color: #e5e7eb; border-color: #f59e0b; color: #334155; }
+        }
+        .attempts-counter.blink { animation: attemptsBlink 0.2s linear 5; }
+    </style>
+<link rel="stylesheet" href="css/chromebook.css">
+</head>
+<body>
+
+<div class="title-row">
+    <a href="index.html" class="home-icon-link" title="Tornar a l'inici" aria-label="Tornar a l'inici">
+        <img src="icon.png" alt="Inici">
+    </a>
+    <h1>Ordenar enters</h1>
+</div>
+
+<div class="panel" id="main-panel">
+    <div id="game-screen" style="display:none;">
+        <div class="header-info">
+            <div class="header-left">
+                <div class="session-text" id="session-display">Sessió 1 de 3</div>
+                <div class="level-text"   id="lvl-display">Repte 1 de 10</div>
+            </div>
+            <div class="score-text" id="score-display">Punts: 0</div>
+            <div id="attempts-display" class="attempts-counter">Intents: 6</div>
+        </div>
+
+        <div class="expression-box" id="expression-box" role="group" aria-label="Expressió matemàtica"></div>
+        <div id="op-instruction" class="op-instruction" aria-live="polite"></div>
+
+        <div class="resolution-panel" id="resolution-panel">
+            <div class="sub-problem" id="sub-problem-display" aria-live="polite"></div>
+
+            <div class="step-container" id="step-repte1">
+                <div class="step-title">Escull el signe correcte</div>
+                <div class="sign-buttons" role="group" aria-label="Tria el signe">
+                    <button class="btn-sign btn-narrow" onclick="checkRepte1('<', this)" aria-label="Menor que">&lt;</button>
+                    <button class="btn-sign btn-narrow" onclick="checkRepte1('>', this)" aria-label="Major que">&gt;</button>
+                </div>
+            </div>
+
+            <div class="step-container" id="step-repte2">
+                <div class="value-input-group">
+                    <button class="btn-submit" id="btn-submit-val" onclick="checkRepte2()">OK</button>
+                </div>
+            </div>
+
+            <div class="step-container" id="step-repte3">
+                <div class="step-title" id="r3-title"></div>
+                <div id="r3-grid" style="position: relative; width: 300px; height: 160px; margin: 20px auto 15px auto;">
+                </div>
+                <button class="btn-submit" id="btn-submit-r3" onclick="checkRepte3()">OK</button>
+                <div id="r3-msg" style="color: var(--danger); font-weight: bold; margin-top: 10px; min-height: 1.5em;"></div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div id="hidden-vault" style="display:none;">
+    <input type="text" id="value-input" class="inline-input" autocomplete="off" aria-label="Resultat numèric">
+</div>
+
+<script src="vendor/native/native-bridge.js"></script>
+<script src="js/game-core.js"></script>
+
+<script>
+    const els = {
+        body:            document.body,
+        gameScreen:      document.getElementById('game-screen'),
+        sessionDisplay:  document.getElementById('session-display'),
+        lvlDisplay:      document.getElementById('lvl-display'),
+        scoreDisplay:    document.getElementById('score-display'),
+        attemptsDisplay: document.getElementById('attempts-display'),
+        expressionBox:   document.getElementById('expression-box'),
+        opInstruction:   document.getElementById('op-instruction'),
+        resolutionPanel: document.getElementById('resolution-panel'),
+        subProblem:      document.getElementById('sub-problem-display'),
+        
+        stepRepte1:      document.getElementById('step-repte1'),
+        stepRepte2:      document.getElementById('step-repte2'),
+        stepRepte3:      document.getElementById('step-repte3'),
+        
+        btnSubmitVal:    document.getElementById('btn-submit-val'),
+        btnSubmitR3:     document.getElementById('btn-submit-r3'),
+        r3Msg:           document.getElementById('r3-msg'), // Node per al missatge
+        
+        r3Title:         document.getElementById('r3-title'),
+        r3Grid:          document.getElementById('r3-grid'),
+        
+        hiddenVault:     document.getElementById('hidden-vault'),
+        valueInput:      document.getElementById('value-input')
+    };
+
+    let isPenalizing    = false;
+    let challengeType   = 1;
+    let challengeData   = {};
+
+    function formatNum(num) {
+        if (num < 0) return `(${num})`;
+        return String(num);
+    }
+
+    function generateChallenge(type) {
+        let data = {};
+        if (type === 1) {
+            let p = randInt(-9, 9);
+            let q = randInt(-9, 9);
+            while (p === q) q = randInt(-9, 9);
+            data = { p, q, correctSign: p < q ? '<' : '>' };
+        } else if (type === 2) {
+            let p = randInt(-9, 7);
+            let q = randInt(p + 2, 9);
+            data = { p, q };
+        } else if (type === 3) {
+            let r = randInt(-5, 4);
+            let numCorrects = randInt(2, 4);
+            let nums = [];
+            
+            while (nums.length < numCorrects) {
+                let n = randInt(-9, r - 1);
+                if (!nums.includes(n)) nums.push(n);
+            }
+            
+            while (nums.length < 8) {
+                let n = randInt(r, 9);
+                if (!nums.includes(n)) nums.push(n);
+            }
+            
+            nums.sort(() => Math.random() - 0.5);
+            data = { r, nums, locked: Array(8).fill(false) };
+        }
+        return data;
+    }
+
+    function updateUI() {
+        els.sessionDisplay.innerText  = `Sessió ${currentSession + 1} de ${TOTAL_SESSIONS}`;
+        els.lvlDisplay.innerText      = `Repte ${currentOperation + 1} de ${TOTAL_OPERATIONS}`;
+        els.scoreDisplay.innerText    = `Punts: ${sessionScore}`;
+        els.attemptsDisplay.innerText = `Intents: ${attemptsLeft}`;
+        els.attemptsDisplay.className = 'attempts-counter' + (attemptsLeft < 3 ? ' danger' : '');
+        
+        els.expressionBox.style.display = 'flex';
+        els.subProblem.style.display    = 'block';
+        els.resolutionPanel.style.display = 'flex';
+        
+        els.stepRepte1.classList.remove('active');
+        els.stepRepte2.classList.remove('active');
+        els.stepRepte3.classList.remove('active');
+        els.opInstruction.classList.remove('active');
+        
+        els.btnSubmitR3.style.display = ''; 
+        if (els.r3Msg) els.r3Msg.innerText = ''; // Netegem el missatge residual si n'hi hagués
+
+        if (els.valueInput.parentNode === els.expressionBox) {
+            els.hiddenVault.appendChild(els.valueInput);
+        }
+
+        if (challengeType === 1) {
+            els.expressionBox.innerHTML = `
+                <span class="token-num highlight">${formatNum(challengeData.p)}</span>
+                <span class="token-op auto-selected">?</span>
+                <span class="token-num highlight">${formatNum(challengeData.q)}</span>
+            `;
+            els.subProblem.innerText = "Completa l'interrogant";
+            els.stepRepte1.classList.add('active');
+
+        } else if (challengeType === 2) {
+            els.expressionBox.innerHTML = `
+                <span class="token-num highlight">${formatNum(challengeData.p)}</span>
+                <span class="token-num" style="background:transparent">&lt;</span>
+                <span id="input-placeholder"></span>
+                <span class="token-num" style="background:transparent">&lt;</span>
+                <span class="token-num highlight">${formatNum(challengeData.q)}</span>
+            `;
+            
+            const placeholder = document.getElementById('input-placeholder');
+            placeholder.replaceWith(els.valueInput);
+            
+            els.valueInput.value = '';
+            els.subProblem.innerText = "Escriu un enter que compleixi les desigualtats";
+            els.stepRepte2.classList.add('active');
+            
+            if (typeof isTouchDevice === 'function' && isTouchDevice()) {
+                if (typeof showCustomKeyboard === 'function') showCustomKeyboard(els.valueInput);
+            } else {
+                els.valueInput.focus();
+            }
+
+        } else if (challengeType === 3) {
+            els.expressionBox.style.display = 'none';
+            els.subProblem.style.display    = 'none';
+            
+            els.r3Title.innerText = `Selecciona els nombres que siguin menors que ${challengeData.r}`;
+            els.r3Grid.innerHTML = '';
+            
+            const coordsCartesianes = [
+                { x: 1, y: 1 }, { x: 2, y: 3 }, { x: 4, y: 5 }, { x: 5, y: 2 },
+                { x: 7, y: 2 }, { x: 9, y: 4 }, { x: 10, y: 1 }, { x: 6, y: 4 }
+            ];
+
+            challengeData.nums.forEach((num, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-sign';
+                btn.innerText = num;
+                
+                const leftPercent = coordsCartesianes[i].x * 10;
+                const topPercent  = (5.5 - coordsCartesianes[i].y) * 20; 
+
+                btn.style.position = 'absolute';
+                btn.style.left = `${leftPercent}%`;
+                btn.style.top = `${topPercent}%`;
+                btn.style.transform = 'translate(-50%, -50%)';
+                btn.style.minWidth = '50px';
+                btn.style.width = '50px';
+                
+                if (challengeData.locked[i]) {
+                    btn.classList.add('selected');
+                    btn.style.backgroundColor = 'var(--success)';
+                    btn.style.borderColor = 'var(--success)';
+                    btn.style.color = 'white';
+                    btn.style.pointerEvents = 'none';
+                } else {
+                    btn.onclick = function() {
+                        if (isPenalizing || isTransitioning) return;
+                        this.classList.toggle('selected');
+                    };
+                }
+                
+                els.r3Grid.appendChild(btn);
+            });
+            
+            els.stepRepte3.classList.add('active');
+        }
+    }
+
+    function buildLevel() {
+        attemptsLeft    = MAX_INTENTS;
+        challengeType   = (currentOperation % 3) + 1;
+        challengeData   = generateChallenge(challengeType);
+        isTransitioning = false;
+        isPenalizing    = false;
+        
+        els.body.style.backgroundColor = bgColors[(currentSession * TOTAL_OPERATIONS + currentOperation) % bgColors.length];
+        updateUI();
+    }
+
+    function penalize() {
+        if (isPenalizing || isTransitioning) return;
+        isPenalizing = true;
+        els.attemptsDisplay.classList.add('blink');
+        setTimeout(() => {
+            els.attemptsDisplay.classList.remove('blink');
+            attemptsLeft--;
+            if (attemptsLeft <= 0) {
+                isTransitioning = true;
+                els.stepRepte1.classList.remove('active');
+                els.stepRepte2.classList.remove('active');
+                els.stepRepte3.classList.remove('active');
+                if (typeof hideCustomKeyboard === 'function') hideCustomKeyboard();
+            }
+            isPenalizing = false;
+            updateUI();
+            if (attemptsLeft <= 0) _finishOp(0);
+        }, 1000);
+    }
+
+    function _finishOp(levelPoints) {
+        recordResult(levelPoints > 0 ? Math.min(MAX_INTENTS - attemptsLeft + 1, 3) : 4);
+        if (typeof hideCustomKeyboard === 'function') hideCustomKeyboard();
+        const waitTime = showMiniOverlay(levelPoints);
+        setTimeout(() => {
+            hideMiniOverlay();
+            if (currentOperation + 1 >= TOTAL_OPERATIONS) {
+                endSession();
+            } else {
+                currentOperation++;
+                buildLevel();
+            }
+        }, waitTime);
+    }
+
+    function checkRepte1(selectedSign, btnElement) {
+        if (isTransitioning || isPenalizing) return;
+        const stepQuestion = `Signe entre ${challengeData.p} i ${challengeData.q}`;
+
+        if (selectedSign !== challengeData.correctSign) {
+            btnElement.classList.add('error-shake');
+            setTimeout(() => btnElement.classList.remove('error-shake'), 200);
+            if (typeof recordAnswerToHistory === 'function') recordAnswerToHistory(stepQuestion, selectedSign, false);
+            penalize(); btnElement.blur(); return;
+        }
+        
+        if (typeof recordAnswerToHistory === 'function') recordAnswerToHistory(stepQuestion, selectedSign, true);
+        els.expressionBox.innerHTML = `
+            <span class="token-num highlight">${formatNum(challengeData.p)}</span>
+            <span class="token-num resolved-num" style="font-size:1.5em">${selectedSign}</span>
+            <span class="token-num highlight">${formatNum(challengeData.q)}</span>
+        `;
+        els.stepRepte1.classList.remove('active');
+        successEnd();
+    }
+
+    function checkRepte2() {
+        if (isTransitioning || isPenalizing) return;
+        const rawValue = els.valueInput.value.trim();
+        if (rawValue === '') return;
+
+        if (!/^-?\d+$/.test(rawValue)) {
+             els.valueInput.classList.add('error-shake');
+             els.btnSubmitVal.classList.add('error-shake');
+             setTimeout(() => { els.valueInput.classList.remove('error-shake'); els.btnSubmitVal.classList.remove('error-shake'); }, 200);
+             penalize(); return;
+        }
+
+        const userAnswer = parseInt(rawValue, 10);
+        const stepQuestion = `Enter entre ${challengeData.p} i ${challengeData.q}`;
+
+        if (userAnswer <= challengeData.p || userAnswer >= challengeData.q) {
+            els.valueInput.classList.add('error-shake');
+            els.btnSubmitVal.classList.add('error-shake');
+            setTimeout(() => { els.valueInput.classList.remove('error-shake'); els.btnSubmitVal.classList.remove('error-shake'); }, 200);
+            if (typeof recordAnswerToHistory === 'function') recordAnswerToHistory(stepQuestion, rawValue, false);
+            penalize();
+            
+            if (typeof isTouchDevice === 'function' && isTouchDevice()) {
+                if (typeof kbMarkForOverwrite === 'function') kbMarkForOverwrite(els.valueInput);
+            } else {
+                els.valueInput.value = ''; els.valueInput.focus();
+            }
+            return;
+        }
+        
+        if (typeof recordAnswerToHistory === 'function') recordAnswerToHistory(stepQuestion, rawValue, true);
+        
+        const resolvedSpan = document.createElement('span');
+        resolvedSpan.className = 'token-num resolved-num';
+        resolvedSpan.innerText = userAnswer;
+        els.valueInput.parentNode.insertBefore(resolvedSpan, els.valueInput);
+        els.hiddenVault.appendChild(els.valueInput);
+        
+        els.stepRepte2.classList.remove('active');
+        successEnd();
+    }
+
+    function checkRepte3() {
+        if (isTransitioning || isPenalizing) return;
+        const buttons = els.r3Grid.querySelectorAll('.btn-sign');
+        let allCorrect = true;
+        let isMissing = false;
+        
+        buttons.forEach((btn, i) => {
+            const isSelected = btn.classList.contains('selected');
+            const isLessThanR = challengeData.nums[i] < challengeData.r;
+            if (isSelected !== isLessThanR) {
+                allCorrect = false;
+                // Si l'hauria d'haver seleccionat però no ho ha fet...
+                if (!isSelected && isLessThanR) {
+                    isMissing = true;
+                }
+            }
+        });
+
+        const stepQuestion = `Menors que ${challengeData.r}`;
+
+        if (!allCorrect) {
+            els.btnSubmitR3.classList.add('error-shake');
+            setTimeout(() => els.btnSubmitR3.classList.remove('error-shake'), 200);
+            if (typeof recordAnswerToHistory === 'function') recordAnswerToHistory(stepQuestion, "Error", false);
+            
+            // 🟢 NOU: Si s'ha deixat d'escollir algun nombre correcte, li ho indiquem amb el missatge
+            if (isMissing && els.r3Msg) {
+                els.r3Msg.innerText = "Falta encara algun nombre.";
+                setTimeout(() => { els.r3Msg.innerText = ''; }, 3000);
+            }
+
+            buttons.forEach((btn, i) => {
+                const isSelected = btn.classList.contains('selected');
+                const isLessThanR = challengeData.nums[i] < challengeData.r;
+
+                if (isSelected && isLessThanR) {
+                    challengeData.locked[i] = true; 
+                    btn.style.backgroundColor = 'var(--success)';
+                    btn.style.borderColor = 'var(--success)';
+                    btn.style.color = 'white';
+                    btn.style.pointerEvents = 'none'; 
+                } else if (isSelected && !isLessThanR) {
+                    btn.classList.add('error-shake');
+                    setTimeout(() => btn.classList.remove('error-shake'), 400);
+                }
+            });
+
+            penalize(); return;
+        }
+
+        if (typeof recordAnswerToHistory === 'function') recordAnswerToHistory(stepQuestion, "Correcte", true);
+        
+        buttons.forEach((btn, i) => {
+            btn.style.pointerEvents = 'none';
+            if (challengeData.nums[i] < challengeData.r) {
+                btn.style.backgroundColor = 'var(--success)';
+                btn.style.borderColor = 'var(--success)';
+                btn.style.color = 'white';
+            }
+        });
+
+        els.btnSubmitR3.style.display = 'none';
+        successEnd();
+    }
+
+    function successEnd() {
+        isTransitioning = true;
+        const fails       = MAX_INTENTS - attemptsLeft;
+        const levelPoints = Math.max(0, 10 - (fails * 2));
+        sessionScore     += levelPoints;
+        els.scoreDisplay.innerText = `Punts: ${sessionScore}`;
+        _finishOp(levelPoints);
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            if (els.gameScreen.style.display !== 'none') {
+                e.preventDefault(); 
+                if (!isTransitioning) checkCurrentCell();
+            }
+        }
+    });
+
+    function checkCurrentCell() { 
+        if (challengeType === 2) checkRepte2(); 
+        if (challengeType === 3) checkRepte3();
+    }
+
+    if (typeof injectSharedHTML === 'function') injectSharedHTML();
+    if (typeof validateConfig === 'function') validateConfig();
+    
+    if (typeof initCustomKeyboard === 'function') initCustomKeyboard({ allowNegative: true });
+    
+    if (typeof startGame === 'function') startGame();
+</script>
+</body>
+</html>

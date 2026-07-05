@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Step Quiz">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="theme-color" content="#f8fafc">
+
+    <meta name="description" content="Activitat interactiva de vocabulari matemàtic">
+    <link rel="icon" href="icon.png">
+    <title>Vocabulari Matemàtic</title>
+    <link rel="stylesheet" href="css/vocabulari.css">
+<link rel="stylesheet" href="css/chromebook.css">
+</head>
+<body>
+
+<div class="title-row">
+    <a href="index.html" class="home-icon-link" title="Tornar a l'inici" aria-label="Tornar a l'inici">
+        <img src="icon.png" alt="Inici">
+    </a>
+    <h1>Vocabulari Matemàtic</h1>
+</div>
+<!-- [ROUND 2 — subtítol eliminat per guanyar espai vertical] -->
+<div class="panel" id="main-panel">
+
+    <!-- Pantalla de joc -->
+    <div id="game-screen" style="display:none;">
+
+        <div class="header-info">
+            <div class="header-left">
+                <div class="session-text" id="session-display">Sessió 1 de 1</div>
+                <div class="level-text"   id="lvl-display">Figura 1 de 4</div>
+            </div>
+            <div class="score-text"     id="score-display">Punts: 0</div>
+            <div class="attempts-counter" id="attempts-display">Intents: 4</div>
+        </div>
+
+        <div id="game-area">
+
+            <div id="context-instruction"></div>
+
+            <!-- SVG de la figura -->
+            <div id="figure-container">
+                <svg id="figure-svg" viewBox="0 0 500 340" xmlns="http://www.w3.org/2000/svg"></svg>
+            </div>
+
+            <!-- Pool de paraules (modalitat A) -->
+            <div id="word-pool" style="display:none;"></div>
+
+            <!-- Input d'escriptura (modalitat B) -->
+            <div id="write-panel" style="display:none;">
+                <div class="write-progress" id="write-progress"></div>
+                <div class="write-prompt">Escriu la paraula</div>
+                <div class="typo-warning"   id="typo-warning">
+                    ⚠️ Crec que saps la paraula correcta, però no l'has escrita bé. Repassa-ho.
+                </div>
+                <div class="write-input-row">
+                    <input type="text" id="write-input"
+                           autocomplete="off" spellcheck="false"
+                           aria-label="Escriu la paraula">
+                    <button class="btn-submit" id="btn-submit-write"
+                            onclick="_vocabCheckWrite()">OK</button>
+                </div>
+                <button class="btn-cycle" id="btn-cycle"
+                        onclick="_vocabCycleWrite()">Canviar de casella</button>
+            </div>
+
+            <!-- [ROUND 1 — mini-overlay mogut dins #game-area per posicionament
+                 absolut; fora del flux = no empeny contingut ni causa scroll] -->
+            <div id="mini-overlay">
+                <div class="mini-overlay-row">
+                    <span class="mini-icon" id="mini-icon">⭐</span>
+                    <span class="mini-text" id="mini-text">Molt bé!</span>
+                </div>
+                <div class="mini-points" id="mini-points">+10 punts</div>
+                <button class="btn-next-figure" id="btn-next-figure"
+                        onclick="_vocabNextFigure()" style="display:none;">Figura següent</button>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- Pantalla de resum final (omplerta per JS) -->
+    <div id="summary-screen" style="display:none;"></div>
+
+</div>
+
+<!-- Ghost per al drag & drop tàctil -->
+<div id="drag-ghost"></div>
+
+<!--
+    ORDRE DE CÀRREGA:
+    vocabulari-figures → vocabulari-engine → vocabulari (defer)
+-->
+<script src="js/vocabulari/vocabulari-figures.js"></script>
+<script src="js/vocabulari/vocabulari-engine.js"></script>
+<script defer src="js/vocabulari/vocabulari.js?v=1"></script>
+
+</body>
+</html>

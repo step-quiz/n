@@ -1,0 +1,25 @@
+{
+  "appId": "net.stepquiz.app",
+  "appName": "Step Quiz",
+  "webDir": ".",
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#f8fafc",
+    "limitsNavigationsToAppBoundDomains": true
+  },
+  "server": {
+    "iosScheme": "capacitor"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 900,
+      "backgroundColor": "#f8fafc",
+      "showSpinner": false,
+      "iosSpinnerStyle": "small"
+    },
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_icon",
+      "iconColor": "#3b82f6"
+    }
+  }
+}

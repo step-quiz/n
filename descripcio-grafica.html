@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Step Quiz">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="theme-color" content="#f8fafc">
+
+    <meta name="description" content="Activitat interactiva de matemàtiques — Descripció d'una gràfica">
+    <link rel="icon" href="icon.png">
+    <title>Descripció d'una gràfica</title>
+
+    <!-- KaTeX (fórmules a la function-box) -->
+    <link rel="stylesheet" href="vendor/katex/katex.min.css">
+    <script defer src="vendor/katex/katex.min.js"></script>
+
+    <!-- Sessions fixes (ha de ser el PRIMER script, sense defer) -->
+    <script src="js/fixed-sessions.js"></script>
+
+    <!-- Motor de funcions i banc de preguntes (síncrons: usen Math.random ja parchejat) -->
+    <script src="js/descripcio-grafica/function-engine.js"></script>
+    <script src="js/descripcio-grafica/question-bank.js"></script>
+    <script src="js/descripcio-grafica/svg-renderer.js"></script>
+
+    <!-- Controlador DOM (deferred: necessita el DOM i KaTeX carregats) -->
+    <script defer src="js/descripcio-grafica/descripcio-grafica.js"></script>
+
+    <!-- Estils -->
+    <link rel="stylesheet" href="css/descripcio-grafica.css">
+    <link rel="stylesheet" href="css/chromebook.css">
+</head>
+<body>
+
+<div class="title-row">
+    <a href="https://step-quiz.net" class="home-icon-link" title="Tornar a l'inici" aria-label="Tornar a l'inici">
+        <img src="icon.png" alt="Inici">
+    </a>
+    <h1>Descripció d'una gràfica</h1>
+</div>
+
+<div class="panel">
+
+    <div id="game-screen" style="display:none;">
+        <div class="header-info">
+            <div class="header-left">
+                    <div class="level-selector" id="level-selector">
+                        <button class="lvl-btn active" id="lvl-btn-1" onclick="setLevel(1)">Nivell 1</button>
+                        <button class="lvl-btn"        id="lvl-btn-2" onclick="setLevel(2)">Nivell 2</button>
+                        <button class="lvl-btn"        id="lvl-btn-3" onclick="setLevel(3)">Nivell 3</button>
+                    </div>
+                    <span class="session-sep">·</span>
+                    <span class="level-text" id="lvl-display">Funció 1 de 4</span>
+            </div>
+            <div class="header-right">
+                <button class="colored-toggle active" id="btn-colored" onclick="toggleColoredGraphs()" title="Mostrar les gràfiques modificades">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r="2.5"/><circle cx="19" cy="13" r="2.5"/><circle cx="6" cy="13" r="2.5"/><circle cx="10" cy="19.5" r="2.5"/><path d="M13.5 9v1.5M19 15.5V17M6 15.5V17M10 22v-1"/></svg>
+                    Gràfiques acolorides
+                </button>
+            </div>
+        </div>
+
+        <div class="game-body">
+
+            <!-- Columna esquerra: pregunta + opcions -->
+            <div class="game-left">
+                <div class="function-box">
+                    <span class="question-badge" id="q-badge">Monotonia</span>
+                    <div class="function-label"  id="q-label">Els intervals de monotonia de f(x) són aquests:</div>
+                    <div id="fx-display" class="function-math"></div>
+                </div>
+                <div id="options-container" class="options-list"></div>
+                <div id="missatge-feedback" style="opacity:0;"></div>
+            </div>
+
+            <!-- Columna dreta: gràfic SVG (sempre visible) -->
+            <div class="game-right">
+                <div id="graph-canvas"></div>
+                <div id="graph-legend" style="display:none;"></div>
+                <div id="graph-footer" style="display:none;">
+                    <div id="countdown-wrap"><div id="countdown-bar"></div></div>
+                    <button id="btn-skip" onclick="skipCountdown()">Continua →</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="session-summary" style="display:none;"></div>
+
+</div>
+
+</body>
+</html>

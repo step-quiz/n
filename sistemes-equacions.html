@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Step Quiz">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="theme-color" content="#f8fafc">
+
+    <meta name="description" content="Activitat interactiva de matemàtiques — Sistemes d'equacions">
+    <link rel="icon" href="icon.png">
+    <title>Sistemes d'equacions — ESO</title>
+
+    <!-- KaTeX (renderització matemàtica) — [FIX m7] Unificat a jsdelivr com la resta -->
+    <link rel="stylesheet" href="vendor/katex/katex.min.css">
+    <script src="vendor/katex/katex.min.js"></script>
+
+    <script>
+        window.APP_CONFIG = {
+            defaultSessions:      1,
+            defaultOperations:    3,
+            defaultIntents:       4,
+            defaultEnllocMitjana: 1
+        };
+    </script>
+    <script src="js/fixed-sessions.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/config.js"></script>
+    <link rel="stylesheet" href="css/shared.css">
+
+    <style>
+    /* ══════════════════════════════════════════════════════
+       REFORMA UI/UX — Sistemes d'equacions
+       Estils específics que sobreescriuen shared.css
+       ══════════════════════════════════════════════════════ */
+
+    :root {
+        --primary:       #0d9488;
+        --primary-light: #ccfbf1;
+        --primary-hover: #0f766e;
+        --primary-dark:  #115e59;
+        --bg-color:      #f0fdfa;
+        --success:       #059669;
+        --success-light: #d1fae5;
+        --danger:        #ef4444;
+        --danger-light:  #fef2f2;
+        --warn-color:    #b45309;
+        --border-color:  #e2e8f0;
+        --text-main:     #1e293b;
+        --text-muted:    #64748b;
+        --panel-bg:      #ffffff;
+    }
+
+    /* ── Overrides de shared.css ───────────────────────── */
+    h1 { color: var(--primary-dark); font-size: 1.5em; }
+    .panel {
+        border-top: 4px solid var(--primary);
+        border-radius: 12px;
+        max-width: 720px;
+    }
+
+    /* Amaguem la capçalera original (la substituïm per score-bar) */
+    .header-info { display: none !important; }
+
+    /* ── Score bar ─────────────────────────────────────── */
+    .score-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 20px;
+        background: #f8fffe;
+        border-bottom: 1px solid var(--border-color);
+        font-size: .88em;
+        color: var(--text-muted);
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .score-bar .score-val {
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        color: var(--success);
+        font-size: 1.05em;
+    }
+
+    /* ── Progress bar (dots) ──────────────────────────── */
+    .progress-bar {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        padding: 14px 20px 6px;
+    }
+    .step-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        background: var(--border-color);
+        transition: all .35s ease;
+        flex-shrink: 0;
+    }
+    .step-dot.done { background: var(--success); }
+    .step-dot.current {
+        background: var(--primary);
+        width: 22px;
+        border-radius: 4px;
+    }
+    .step-connector {
+        flex: 1;
+        height: 1px;
+        background: var(--border-color);
+        min-width: 6px;
+    }
+    .step-label {
+        font-size: .78em;
+        color: var(--text-muted);
+        margin-left: 8px;
+        white-space: nowrap;
+    }
+
+    /* ── System card (expression-box) ─────────────────── */
+    .system-card {
+        padding: 20px;
+        text-align: center;
+    }
+    .brace-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+    .brace-left {
+        font-size: 3.2em;
+        font-weight: 200;
+        color: var(--primary);
+        line-height: 1;
+        font-family: 'Times New Roman', serif;
+        user-select: none;
+    }
+    .eq-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        align-items: flex-start;
+    }
+    .eq-row {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 1.25em;
+    }
+    .eq-label {
+        font-size: .55em;
+        color: var(--text-muted);
+        font-family: sans-serif;
+        margin-left: 6px;
+    }
+    /* Destacar l'equació escollida (marcador groc) */
+    .eq-highlight {
+        background: #fef9c3;
+        border-radius: 4px;
+        padding: 2px 8px;
+        margin: -2px -8px;
+        transition: background .3s ease;
+    }
+    /* Parèntesis grans per a files d'inputs */
+    .paren-big {
+        font-size: 3em;
+        line-height: 1;
+        vertical-align: middle;
+        color: var(--primary-dark);
+        font-weight: 200;
+        font-family: 'Times New Roman', serif;
+    }
+    /* Operador "+" entre termes dins expressions */
+    .op-plus {
+        color: var(--text-muted);
+        font-size: .9em;
+        padding: 0 2px;
+    }
+    /* Parèntesis al voltant del terme independent */
+    .paren-const {
+        color: var(--text-muted);
+        font-size: 2.2em;
+        font-weight: 200;
+        font-family: 'Times New Roman', serif;
+        line-height: 1;
+        vertical-align: middle;
+        padding: 0 1px;
+    }
+
+    .iso-row {
+        background: var(--primary-light);
+        border-radius: 6px;
+        padding: 3px 12px;
+        margin-top: 4px;
+        animation: slideIn .4s ease;
+    }
+    .result-row {
+        margin-top: 4px;
+        animation: slideIn .4s ease;
+    }
+    .result-row .katex { color: var(--success); }
+    .result-final {
+        background: var(--success-light);
+        border-radius: 6px;
+        padding: 4px 14px;
+        margin-top: 8px;
+        animation: popIn .4s cubic-bezier(.175,.885,.32,1.275);
+    }
+    .result-final .katex { color: var(--primary-dark); font-weight: 500; }
+
+    /* ── Workspace (resolution panel reformat) ────────── */
+    #resolution-panel {
+        display: none;
+        flex-direction: column;
+        background: var(--panel-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 10px;
+        margin: 0 16px 16px;
+        overflow: hidden;
+    }
+    .ws-header {
+        padding: 12px 18px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        background: #fafffe;
+    }
+    .ws-title {
+        font-size: .95em;
+        font-weight: bold;
+        color: var(--text-main);
+        line-height: 1.4;
+    }
+    .ws-badge {
+        font-size: .72em;
+        padding: 3px 10px;
+        border-radius: 6px;
+        font-weight: bold;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .badge-sub { background: #dbeafe; color: #1d4ed8; }
+    .badge-red { background: var(--success-light); color: var(--success); }
+    .badge-igu { background: #fef3c7; color: #92400e; }
+    .ws-body {
+        padding: 18px 18px 20px;
+    }
+
+    /* ── Inputs matemàtics ─────────────────────────────── */
+    .math-input {
+        width: 54px; height: 44px;
+        text-align: center;
+        font-family: 'Courier New', monospace;
+        font-size: 1.05em;
+        font-weight: bold;
+        border: 2px solid var(--primary);
+        border-radius: 8px;
+        background: var(--primary-light);
+        color: var(--text-main);
+        outline: none;
+        transition: all .2s;
+        -moz-appearance: textfield;
+    }
+    .math-input::-webkit-inner-spin-button,
+    .math-input::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .math-input:focus {
+        background: #99f6e4;
+        box-shadow: 0 0 0 3px rgba(13,148,136,.18);
+    }
+    .math-input.locked-green {
+        color: var(--success);
+        border-color: var(--success);
+        background: var(--success-light);
+        pointer-events: none;
+    }
+    .math-input.error-flash {
+        border-color: var(--danger);
+        background: var(--danger-light);
+        animation: shake .25s;
+    }
+
+    /* ── Input-row (fila d'inputs) ─────────────────────── */
+    .input-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin: 12px 0;
+        font-size: 1.15em;
+    }
+    .input-row .katex { font-size: 1.15em; }
+
+    /* ── Pills de selecció (equació / variable) ───────── */
+    .eq-choice {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin: 12px 0;
+    }
+    .eq-choice.eq-choice-vertical {
+        flex-direction: column;
+        align-items: center;
+    }
+    .eq-pill {
+        padding: 12px 20px;
+        border: 2px solid var(--border-color);
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all .2s;
+        background: var(--panel-bg);
+        font-family: inherit;
+        font-size: inherit;
+        min-width: 80px;
+        text-align: center;
+        touch-action: manipulation;
+    }
+    .eq-pill:active { transform: scale(.96); }
+    @media (hover:hover) {
+        .eq-pill:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            transform: translateY(-2px);
+        }
+    }
+    .eq-pill.selected {
+        border-color: var(--primary);
+        background: var(--primary-light);
+        box-shadow: 0 0 0 3px rgba(13,148,136,.12);
+    }
+    .eq-pill.error-flash {
+        border-color: var(--danger);
+        background: var(--danger-light);
+        animation: shake .25s;
+    }
+
+    /* ── Grid d'alineació (substitució / reducció) ────── */
+    .align-grid {
+        display: grid;
+        grid-template-columns: 1fr 24px auto;
+        gap: 10px 6px;
+        align-items: center;
+        margin: 12px auto;
+        max-width: 520px;
+        font-size: 1em;
+    }
+
+    /* ── Layout de suma (reducció) ─────────────────────── */
+    .sum-layout {
+        margin: 8px auto;
+        max-width: 460px;
+        font-size: 1em;
+    }
+    .sum-result-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        flex-wrap: wrap;
+        padding: 10px 12px;
+        background: var(--primary-light);
+        border-radius: 8px;
+        margin-bottom: 4px;
+    }
+    .sum-sol-row-simple {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px dashed var(--border-color);
+    }
+    .align-left {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+    }
+    .align-eq {
+        text-align: center;
+        color: var(--text-muted);
+        font-size: .95em;
+    }
+    .align-right {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .row-highlight {
+        background: var(--primary-light);
+        border-radius: 6px;
+        padding: 6px 8px;
+        margin: -6px -8px;
+    }
+    .row-dim { opacity: .45; }
+    .zero-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px; height: 38px;
+        border: 2px solid var(--success);
+        border-radius: 8px;
+        color: var(--success);
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        font-size: 1em;
+        background: var(--success-light);
+        animation: popIn .4s cubic-bezier(.175,.885,.32,1.275);
+    }
+
+    /* ── Feedback ──────────────────────────────────────── */
+    .feedback-msg {
+        text-align: center;
+        min-height: 22px;
+        margin-top: 8px;
+        font-size: .9em;
+        transition: all .2s;
+        line-height: 1.5;
+    }
+    .feedback-msg.important { color: var(--warn-color); font-weight: bold; }
+    .feedback-msg.error     { color: var(--danger); font-weight: bold; }
+    .feedback-msg.success   { color: var(--success); font-weight: bold; }
+
+    /* ── Botó Comprova ─────────────────────────────────── */
+    .btn-ok {
+        display: block;
+        margin: 16px auto 0;
+        padding: 11px 30px;
+        background: #e2e8f0;
+        color: #475569;
+        border: none;
+        border-radius: 8px;
+        font-size: .95em;
+        font-weight: bold;
+        cursor: pointer;
+        text-transform: uppercase;
+        touch-action: manipulation;
+        transition: all .2s;
+    }
+    .btn-ok:active { transform: scale(.96); }
+    @media (hover:hover) { .btn-ok:hover { background: #1e293b; color: white; } }
+    .btn-ok.error-shake { background: var(--danger); color: white; animation: shake .25s; }
+
+    /* ── Pantalla de selecció ──────────────────────────── */
+    #selection-screen { padding: 24px 20px; }
+    .section-label {
+        font-size: .8em;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        margin-bottom: 8px;
+        text-align: center;
+    }
+    .selection-prompt {
+        font-size: 1.15em;
+        color: var(--text-main);
+        font-weight: bold;
+        text-align: center;
+        margin: 18px 0 12px;
+    }
+    .method-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        max-width: 460px;
+        margin: 0 auto;
+    }
+    .method-card {
+        background: var(--panel-bg);
+        border: 1.5px solid var(--border-color);
+        border-radius: 10px;
+        padding: 16px 18px;
+        cursor: pointer;
+        transition: all .25s;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        width: 100%;
+        font-family: inherit;
+        text-align: left;
+        touch-action: manipulation;
+    }
+    .method-card:active { transform: scale(.97); }
+    @media (hover:hover) {
+        .method-card:hover {
+            border-color: var(--primary);
+            background: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(13,148,136,.1);
+        }
+    }
+    .method-icon {
+        width: 40px; height: 40px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1em;
+        font-weight: bold;
+        flex-shrink: 0;
+    }
+    .icon-sub { background: #dbeafe; color: #1d4ed8; }
+    .icon-red { background: var(--success-light); color: var(--success); }
+    .icon-igu { background: #fef3c7; color: #92400e; }
+    .method-name { font-size: 1.05em; font-weight: bold; color: var(--text-main); }
+    .method-desc { font-size: .88em; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── Mini overlay (sobreescriu shared.css) ─────────── */
+    #mini-victory-overlay {
+        position: absolute;
+        bottom: 0; left: 0;
+        width: 100%; height: auto;
+        background: transparent;
+        z-index: 100;
+        justify-content: center;
+        align-items: flex-end;
+        padding: 0 20px 24px;
+        pointer-events: none;
+        border-radius: 0 0 10px 10px;
+        border-top: none;
+    }
+    .mini-vic-text { font-size: 1.8em; }
+    .mini-vic-points {
+        border-radius: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,.08);
+    }
+
+    /* ── Pantalles finals (sobreescriuen shared.css) ──── */
+    #session-end-screen h2 { color: var(--primary); }
+    #final-screen h2 { color: var(--primary); }
+
+    /* ── Responsiu ─────────────────────────────────────── */
+    @media (max-width: 480px) {
+        .panel { border-radius: 8px; }
+        .eq-row { font-size: 1.05em; }
+        .math-input { width: 46px; height: 38px; font-size: .9em; }
+        .ws-header { flex-direction: column; align-items: flex-start; gap: 4px; padding: 10px 14px; }
+        .ws-body { padding: 14px; }
+        .score-bar { font-size: .82em; padding: 10px 14px; }
+        .progress-bar { padding: 10px 14px 4px; }
+        .align-grid { font-size: .9em; }
+        .method-card { padding: 12px 14px; }
+    }
+
+    /* ── Bloqueig mòbil vertical ──────────────────────── */
+    #portrait-block {
+        display: none;
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: var(--bg-color);
+        z-index: 9999;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        padding: 30px;
+        text-align: center;
+    }
+    #portrait-block .rotate-icon {
+        font-size: 3.5em;
+        animation: rotateHint 2s ease-in-out infinite;
+    }
+    #portrait-block p {
+        font-size: 1.15em;
+        color: var(--text-main);
+        font-weight: bold;
+        max-width: 280px;
+        line-height: 1.5;
+    }
+    #portrait-block .sub-text {
+        font-size: .9em;
+        color: var(--text-muted);
+        font-weight: normal;
+    }
+    @keyframes rotateHint {
+        0%, 100% { transform: rotate(0deg); }
+        50%      { transform: rotate(90deg); }
+    }
+    /* Mostrar només en mòbils en vertical (pantalla estreta + portrait) */
+    @media (max-width: 600px) and (orientation: portrait) {
+        #portrait-block { display: flex; }
+        .panel, .title-row { display: none !important; }
+    }
+
+    /* ── Animacions ─────────────────────────────────────── */
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateX(-12px); }
+        to   { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes popIn {
+        0%   { transform: scale(0); }
+        70%  { transform: scale(1.15); }
+        100% { transform: scale(1); }
+    }
+
+    /* Step container override */
+    .step-container { display: none; flex-direction: column; align-items: center; width: 100%; }
+    .step-container.active { display: flex; animation: fadeUp .3s ease; }
+
+    /* KaTeX dins d'align-grid */
+    .align-grid .katex { font-size: 1em; }
+    .align-grid .math-input { width: 50px; height: 38px; font-size: .95em; }
+
+    /* Keyboard custom-input override:
+       Casella activa ben visible: fons gris + vora negra + ombra */
+    .kb-active-input {
+        background-color: #d1d5db !important;
+        border-color: #1e293b !important;
+        box-shadow: 0 0 0 3px rgba(30,41,59,.20) !important;
+        color: var(--text-main) !important;
+    }
+    </style>
+<link rel="stylesheet" href="css/chromebook.css">
+</head>
+<body>
+
+<!-- Bloqueig mòbil vertical -->
+<div id="portrait-block">
+    <div class="rotate-icon">📱</div>
+    <p>Si us plau, gira el teu mòbil</p>
+    <p class="sub-text">Les equacions es veuen millor en horitzontal</p>
+</div>
+
+<div class="title-row">
+    <a href="index.html" class="home-icon-link" title="Tornar a l'inici" aria-label="Tornar a l'inici">
+        <img src="icon.png" alt="Inici">
+    </a>
+    <h1>Sistemes d'equacions</h1>
+</div>
+
+<div class="panel" id="main-panel">
+
+    <!-- ══ PANTALLA DE SELECCIÓ ══ -->
+    <div id="selection-screen">
+        <div class="system-card">
+            <div class="section-label">Resol el sistema</div>
+            <div class="expression-box" id="preview-expression-box"></div>
+        </div>
+        <p class="selection-prompt">Quin mètode vols fer servir?</p>
+        <div class="method-grid">
+            <button class="method-card" onclick="selectRepte(1)">
+                <div class="method-icon icon-sub">S</div>
+                <div>
+                    <div class="method-name">Substitució</div>
+                    <div class="method-desc">Aïlla una variable i substitueix a l'altra equació</div>
+                </div>
+            </button>
+            <button class="method-card" onclick="selectRepte(2)">
+                <div class="method-icon icon-red">R</div>
+                <div>
+                    <div class="method-name">Reducció</div>
+                    <div class="method-desc">Multiplica i suma per eliminar una variable</div>
+                </div>
+            </button>
+            <button class="method-card" onclick="selectRepte(3)">
+                <div class="method-icon icon-igu">I</div>
+                <div>
+                    <div class="method-name">Igualació</div>
+                    <div class="method-desc">Aïlla la mateixa variable a les dues equacions i iguala-les</div>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <!-- ══ PANTALLA DE JOC ══ -->
+    <div id="game-screen" style="display:none;">
+        <!-- Score bar -->
+        <div class="score-bar">
+            <span id="session-display"></span>
+            <span id="lvl-display"></span>
+            <span class="score-val" id="score-display">Punts: 0</span>
+            <span id="attempts-display" style="display:none;"></span>
+        </div>
+
+        <!-- Progress dots -->
+        <div class="progress-bar" id="progress-bar"></div>
+
+        <!-- Sistema (expression-box) -->
+        <div class="system-card">
+            <div class="expression-box" id="expression-box"></div>
+        </div>
+
+        <!-- Workspace (conté el resolution-panel) -->
+        <div id="resolution-panel">
+            <div class="ws-header">
+                <span id="step-title" class="ws-title"></span>
+                <span id="method-badge" class="ws-badge"></span>
+            </div>
+            <div class="ws-body">
+                <div class="step-container" id="current-step">
+                    <div id="step-schema"></div>
+                    <div id="step-btns"></div>
+                    <div id="step-feedback" class="feedback-msg"></div>
+                    <button class="btn-ok" id="btn-submit-step" onclick="checkStep()">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- #mini-victory-overlay, #customKeyboard, #session-end-screen, #final-screen
+         → injectats per injectSharedHTML() de game-core.js -->
+</div>
+
+<script src="vendor/native/native-bridge.js"></script>
+<script src="js/game-core.js"></script>
+<script src="js/sistemes-equacions/sistemes-equacions.js"></script>
+s</body>
+</html>

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Step Quiz">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="theme-color" content="#f8fafc">
+
+    <meta name="description" content="Activitat inversa — Dibuixa la gràfica a partir de la descripció">
+    <link rel="icon" href="icon.png">
+    <title>Dibuixa la gràfica</title>
+
+    <!-- KaTeX -->
+    <link rel="stylesheet" href="vendor/katex/katex.min.css">
+    <script defer src="vendor/katex/katex.min.js"></script>
+
+    <!-- Sessions fixes (primer, sense defer) -->
+    <script src="js/fixed-sessions.js"></script>
+
+    <!-- Motor de funcions + banc de preguntes (per llegir la resposta correcta) -->
+    <script src="js/descripcio-grafica/function-engine.js"></script>
+    <script src="js/descripcio-grafica/question-bank.js"></script>
+    <script src="js/descripcio-grafica/svg-renderer.js"></script>
+
+    <!-- Estils base (compartits amb l'activitat original) -->
+    <link rel="stylesheet" href="css/descripcio-grafica.css">
+    <link rel="stylesheet" href="css/chromebook.css">
+
+    <style>
+        /* ---- SOBREESCRIPTURES D'ESTIL PER A LA VERSIÓ INVERSA ---- */
+
+        /* Columna esquerra: una mica més ampla perquè conté 3 blocs */
+        .game-left  { width: 46%; gap: 10px; }
+        .game-right { width: 54%; }
+
+        /* ---- BLOCS DE DESCRIPCIÓ (A / B / C) ---- */
+        .desc-block {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            border: 2px solid var(--border-light);
+            background: #f8faff;
+        }
+        .desc-block-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .desc-letter {
+            display: flex; align-items: center; justify-content: center;
+            width: 26px; height: 26px; border-radius: 50%;
+            font-size: .82rem; font-weight: 800;
+            background: var(--primary); color: white;
+            flex-shrink: 0;
+        }
+        .desc-badge {
+            font-size: .89rem; font-weight: 700;
+            background: var(--primary-light); color: var(--text-main);
+            padding: 3px 10px; border-radius: 20px;
+        }
+        .desc-text {
+            font-size: .97rem; font-weight: 500;
+            color: var(--text-main); line-height: 1.45;
+            padding-left: 36px;   /* s'alinea amb el text, no amb la lletra */
+        }
+        .desc-block.no-concavity .desc-text {
+            color: var(--text-muted);
+            font-style: italic;
+        }
+
+        /* ---- BOTÓ NOVA FUNCIÓ ---- */
+        .btn-nova {
+            margin-top: 4px;
+            padding: 10px 22px;
+            width: auto;
+            align-self: flex-start;
+            font-family: 'Barlow', sans-serif;
+            font-size: .95rem; font-weight: 700;
+            border: none; border-radius: 10px;
+            background: var(--primary); color: white;
+            cursor: pointer;
+            transition: background .15s, transform .12s;
+        }
+        .btn-nova:hover  { background: var(--primary-hover); }
+        .btn-nova:active { transform: scale(.97); }
+
+        /* ---- WRAPPER DEL GRÀFIC + OVERLAY ---- */
+        .graph-wrapper {
+            position: relative;
+            width: 100%; flex: 1 1 0; min-height: 0;
+            display: flex; flex-direction: column;
+        }
+
+        /* El canvas ocupa tota l'alçada del wrapper */
+        #graph-canvas {
+            flex: 1 1 0; min-height: 0;
+        }
+
+        /* ---- OVERLAY QUE AMAGA EL GRÀFIC ---- */
+        #graph-overlay {
+            position: absolute; inset: 0;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 16px;
+            background: #f0f6ff;
+            border-radius: 10px;
+            border: 2px dashed var(--border-heavy);
+            transition: opacity .35s ease;
+            z-index: 10;
+            cursor: default;
+        }
+        #graph-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .overlay-icon {
+            font-size: 3rem;
+            line-height: 1;
+            user-select: none;
+        }
+        .overlay-msg {
+            font-size: 1.05rem; font-weight: 700;
+            color: var(--text-main); text-align: center;
+            padding: 0 20px; line-height: 1.4;
+        }
+        .overlay-sub {
+            font-size: .88rem; color: var(--text-muted);
+            text-align: center; padding: 0 24px;
+        }
+        .btn-comprova {
+            padding: 11px 28px;
+            font-family: 'Barlow', sans-serif;
+            font-size: 1rem; font-weight: 700;
+            border: none; border-radius: 10px;
+            background: var(--primary); color: white;
+            cursor: pointer;
+            transition: background .15s, transform .12s, box-shadow .15s;
+            box-shadow: 0 2px 8px rgba(37,99,235,.25);
+        }
+        .btn-comprova:hover  {
+            background: var(--primary-hover);
+            box-shadow: 0 4px 14px rgba(37,99,235,.35);
+        }
+        .btn-comprova:active { transform: scale(.97); }
+
+        /* ---- LLEGENDA ACOLORIDA (reutilitzem l'estil original) ---- */
+        #graph-legend {
+            display: none;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 6px 2px 2px;
+            flex-shrink: 0;
+        }
+
+        /* Petita separació entre la fórmula i els blocs */
+        .function-box { margin-bottom: 4px; }
+
+        /* ---- FÓRMULA AMAGADA ---- */
+        .function-math.hidden-fx { display: none; }
+
+        .btn-reveal-fx {
+            align-self: flex-start;
+            padding: 7px 14px;
+            font-family: 'Barlow', sans-serif;
+            font-size: .85rem; font-weight: 700;
+            border: none; border-radius: 8px;
+            background: #1e293b; color: white;
+            cursor: pointer;
+            transition: background .15s, transform .12s;
+        }
+        .btn-reveal-fx:hover  { background: #0f172a; }
+        .btn-reveal-fx:active { transform: scale(.97); }
+
+        /* Línies de text separades dins cada bloc */
+        .desc-text .desc-line {
+            display: block;
+            margin-bottom: 2px;
+        }
+        .desc-text .desc-line:last-child { margin-bottom: 0; }
+    </style>
+</head>
+<body>
+
+<div class="title-row">
+    <a href="https://step-quiz.net" class="home-icon-link" title="Tornar a l'inici" aria-label="Tornar a l'inici">
+        <img src="icon.png" alt="Inici">
+    </a>
+    <h1>Dibuixa la gràfica</h1>
+</div>
+
+<div class="panel">
+    <div id="game-screen" style="display:none;">
+
+        <!-- CAPÇALERA: nivell + comptador -->
+        <div class="header-info">
+            <div class="header-left">
+                <div class="level-selector" id="level-selector">
+                    <button class="lvl-btn active" id="lvl-btn-1" onclick="setLevel(1)">Nivell 1</button>
+                    <button class="lvl-btn"        id="lvl-btn-2" onclick="setLevel(2)">Nivell 2</button>
+                    <button class="lvl-btn"        id="lvl-btn-3" onclick="setLevel(3)">Nivell 3</button>
+                </div>
+                <span class="session-sep">·</span>
+                <span class="level-text" id="lvl-display">Funció 1</span>
+            </div>
+        </div>
+
+        <div class="game-body">
+
+            <!-- COLUMNA ESQUERRA: descripció completa -->
+            <div class="game-left">
+
+                <!-- Fórmula -->
+                <div class="function-box">
+                    <div class="function-label">Descriu i dibuixa aquesta funció:</div>
+                    <button class="btn-reveal-fx" id="btn-reveal-fx" onclick="revealFx()">Visualitzar l'expressió de f(x)</button>
+                    <div id="fx-display" class="function-math hidden-fx"></div>
+                </div>
+
+                <!-- Bloc A: Signe -->
+                <div class="desc-block" id="block-sign">
+                    <div class="desc-block-header">
+                        <span class="desc-letter">A</span>
+                        <span class="desc-badge">Signe de f(x)</span>
+                    </div>
+                    <div class="desc-text" id="text-sign">—</div>
+                </div>
+
+                <!-- Bloc B: Monotonia -->
+                <div class="desc-block" id="block-mono">
+                    <div class="desc-block-header">
+                        <span class="desc-letter">B</span>
+                        <span class="desc-badge">Monotonia de f(x)</span>
+                    </div>
+                    <div class="desc-text" id="text-mono">—</div>
+                </div>
+
+                <!-- Bloc C: Concavitat -->
+                <div class="desc-block" id="block-conc">
+                    <div class="desc-block-header">
+                        <span class="desc-letter">C</span>
+                        <span class="desc-badge">Concavitat de f(x)</span>
+                    </div>
+                    <div class="desc-text" id="text-conc">—</div>
+                </div>
+
+                <!-- Botó nova funció -->
+                <button class="btn-nova" onclick="buildFunction()">Nova funció →</button>
+
+            </div>
+
+            <!-- COLUMNA DRETA: gràfic amagat -->
+            <div class="game-right">
+                <div class="graph-wrapper">
+
+                    <!-- El gràfic (sempre renderitzat, però tapat) -->
+                    <div id="graph-canvas"></div>
+
+                    <!-- Overlay que tapa el gràfic -->
+                    <div id="graph-overlay">
+                        <div class="overlay-icon">✏️</div>
+                        <div class="overlay-msg">Dibuixa la gràfica<br>a la llibreta</div>
+                        <div class="overlay-sub">Fes servir les tres característiques<br>de l'esquerra com a guia</div>
+                        <button class="btn-comprova" onclick="revealGraph()">Visualitza la gràfica amagada →</button>
+                    </div>
+
+                    <!-- Llegenda acolorida (apareix quan es revela) -->
+                    <div id="graph-legend"></div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+
+    let currentLevel  = Math.min(3, Math.max(1, parseInt(new URLSearchParams(window.location.search).get('nivell') || '1', 10)));
+    let functionCount = 0;
+    let currentSpec   = null;
+
+    const els = {
+        gameScreen:  document.getElementById('game-screen'),
+        fxDisplay:   document.getElementById('fx-display'),
+        btnRevealFx: document.getElementById('btn-reveal-fx'),
+        lvlDisplay:  document.getElementById('lvl-display'),
+        textSign:    document.getElementById('text-sign'),
+        textMono:    document.getElementById('text-mono'),
+        textConc:    document.getElementById('text-conc'),
+        blockConc:   document.getElementById('block-conc'),
+        graphCanvas: document.getElementById('graph-canvas'),
+        graphLegend: document.getElementById('graph-legend'),
+        overlay:     document.getElementById('graph-overlay'),
+    };
+
+    // ----------------------------------------------------------------
+    //  HELPERS D'INTERVALS (reproduïts del question-bank, notació pròpia)
+    // ----------------------------------------------------------------
+    const INF = Infinity;
+    function _n(x) {
+        if (x ===  INF) return '+∞';
+        if (x === -INF) return '−∞';
+        return x < 0 ? `−${-x}` : `${x}`;
+    }
+    function _iv(a, b) { return `(${_n(a)}, ${_n(b)})`; }
+
+    // Agrupa intervals per valor i retorna array de línies HTML
+    function _groupLines(breaks, parts, labelFn) {
+        const pts = [-INF, ...breaks, INF];
+        const seen = [], groups = {};
+        parts.forEach((p, i) => {
+            const iv = _iv(pts[i], pts[i + 1]);
+            if (!groups[p]) { groups[p] = []; seen.push(p); }
+            groups[p].push(iv);
+        });
+        return seen.map(p => labelFn(p, groups[p].join(' ∪ ')));
+    }
+
+    function signLines(spec) {
+        const { signBreaks, signParts } = spec;
+        if (signParts.every(p => p === 'positiu')) return [`f(x) > 0 a l'interval (−∞, +∞)`];
+        if (signParts.every(p => p === 'negatiu')) return [`f(x) < 0 a l'interval (−∞, +∞)`];
+        return _groupLines(signBreaks, signParts, (p, ivs) =>
+            p === 'positiu'
+                ? `f(x) > 0 a l'interval ${ivs}`
+                : `f(x) < 0 a l'interval ${ivs}`
+        );
+    }
+
+    function monoLines(spec) {
+        const { monBreaks, monParts } = spec;
+        if (monParts.length === 1) {
+            const mot = monParts[0] === 'creixent' ? 'creixent' : 'decreixent';
+            return [`f(x) és ${mot} a l'interval (−∞, +∞)`];
+        }
+        return _groupLines(monBreaks, monParts, (p, ivs) =>
+            `f(x) és ${p} a l'interval ${ivs}`
+        );
+    }
+
+    function concLines(spec) {
+        if (!spec.hasConcavity) return null;
+        const { concBreaks, concParts } = spec;
+        if (concParts.length === 1) {
+            const mot = concParts[0] === 'amunt' ? 'positiva' : 'negativa';
+            return [`f(x) té concavitat ${mot} a l'interval (−∞, +∞)`];
+        }
+        return _groupLines(concBreaks, concParts, (p, ivs) => {
+            const mot = p === 'amunt' ? 'positiva' : 'negativa';
+            return `f(x) té concavitat ${mot} a l'interval ${ivs}`;
+        });
+    }
+
+    function _renderLines(el, lines) {
+        el.innerHTML = lines
+            .map(l => `<span class="desc-line">${l}</span>`)
+            .join('');
+    }
+
+    // ----------------------------------------------------------------
+    //  TOGGLE FÓRMULA
+    // ----------------------------------------------------------------
+    window.revealFx = function () {
+        els.fxDisplay.classList.remove('hidden-fx');
+        els.btnRevealFx.style.display = 'none';
+    };
+
+    // ----------------------------------------------------------------
+    //  CONSTRUEIX UNA NOVA FUNCIÓ
+    // ----------------------------------------------------------------
+    function buildFunction() {
+        functionCount++;
+        els.lvlDisplay.textContent = `Funció ${functionCount}`;
+
+        // Amaga la fórmula de nou
+        els.fxDisplay.classList.add('hidden-fx');
+        els.btnRevealFx.style.display = '';
+
+        // Genera l'especificació
+        currentSpec = FunctionEngine.generateFunction(currentLevel);
+
+        // Fórmula KaTeX (renderitzada però amagada)
+        if (window.katex) {
+            katex.render(currentSpec.latex, els.fxDisplay, { throwOnError: false, displayMode: true });
+        } else {
+            els.fxDisplay.textContent = currentSpec.latex;
+        }
+
+        // Blocs A / B / C — text propi, per línies
+        _renderLines(els.textSign, signLines(currentSpec));
+        _renderLines(els.textMono, monoLines(currentSpec));
+
+        const cLines = concLines(currentSpec);
+        if (cLines) {
+            _renderLines(els.textConc, cLines);
+            els.blockConc.classList.remove('no-concavity');
+        } else {
+            els.textConc.innerHTML = `<span class="desc-line">Aquesta família de funcions no té inflexió definida amb intervals enters.</span>`;
+            els.blockConc.classList.add('no-concavity');
+        }
+
+        // Renderitza el gràfic (amagat sota l'overlay)
+        els.graphCanvas.innerHTML = SvgRenderer.renderFuncSVG(currentSpec);
+
+        // Torna a tapar el gràfic
+        els.graphLegend.style.display = 'none';
+        els.graphLegend.innerHTML     = '';
+        els.overlay.classList.remove('hidden');
+    }
+
+    // ----------------------------------------------------------------
+    //  REVELA EL GRÀFIC
+    // ----------------------------------------------------------------
+    window.revealGraph = function () {
+        if (!currentSpec) return;
+        els.overlay.classList.add('hidden');
+    };
+
+    // ----------------------------------------------------------------
+    //  CANVI DE NIVELL
+    // ----------------------------------------------------------------
+    window.buildFunction = buildFunction;
+
+    window.setLevel = function (n) {
+        currentLevel = n;
+        [1, 2, 3].forEach(i => {
+            const b = document.getElementById(`lvl-btn-${i}`);
+            if (b) b.className = 'lvl-btn' + (i === n ? ' active' : '');
+        });
+        buildFunction();
+    };
+
+    // ----------------------------------------------------------------
+    //  INICI
+    // ----------------------------------------------------------------
+    window.addEventListener('DOMContentLoaded', () => {
+        [1, 2, 3].forEach(i => {
+            const b = document.getElementById(`lvl-btn-${i}`);
+            if (b) b.className = 'lvl-btn' + (i === currentLevel ? ' active' : '');
+        });
+        els.gameScreen.style.display = 'flex';
+
+        function tryBuild() {
+            if (window.katex) { buildFunction(); }
+            else               { setTimeout(tryBuild, 50); }
+        }
+        tryBuild();
+    });
+
+})();
+</script>
+
+</body>
+</html>
