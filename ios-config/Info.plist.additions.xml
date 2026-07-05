@@ -1,0 +1,42 @@
+<!--
+============================================================================
+Info.plist — ENTRADES A AFEGIR MANUALMENT
+============================================================================
+Després de `npx cap add ios`, obre a Xcode:
+  ios/App/App/Info.plist
+
+Afegeix-hi NOMÉS les claus dels permisos que l'app fa servir de veritat.
+Demanar permisos innecessaris és motiu de rebuig (Guideline 5.1.1).
+
+Step Quiz NOMÉS necessita notificacions locals (recordatoris de pràctica).
+NO usa càmera, micròfon, ubicació, contactes, Bluetooth, etc. → NO els declaris.
+============================================================================
+-->
+
+<!-- Recordatoris de pràctica (LocalNotifications) -->
+<key>NSUserNotificationsUsageDescription</key>
+<string>Step Quiz pot enviar-te recordatoris per practicar matemàtiques a l'hora que triïs. Aquests recordatoris són locals i no s'envia cap dada.</string>
+
+<!-- Idioma per defecte de l'app -->
+<key>CFBundleDevelopmentRegion</key>
+<string>ca</string>
+
+<!-- Localitzacions suportades -->
+<key>CFBundleLocalizations</key>
+<array>
+  <string>ca</string>
+  <string>es</string>
+  <string>en</string>
+</array>
+
+<!-- Nom visible sota la icona -->
+<key>CFBundleDisplayName</key>
+<string>Step Quiz</string>
+
+<!-- Orientacions (iPhone: retrat i apaïsat; ajusta segons proves) -->
+<key>UISupportedInterfaceOrientations</key>
+<array>
+  <string>UIInterfaceOrientationPortrait</string>
+  <string>UIInterfaceOrientationLandscapeLeft</string>
+  <string>UIInterfaceOrientationLandscapeRight</string>
+</array>
