@@ -22,7 +22,7 @@ Aquí ens centrem en **què fer i en quin ordre** perquè la revisió sigui suau
 | Meta tags iOS + safe areas | ✅ Fet |
 | Config Capacitor (`package.json`, `capacitor.config.json`) | ✅ Fet |
 | Enllaços externs (YouTube) i donacions (Ko-fi) | ✅ Eliminats |
-| Icona quadrada 1024×1024 | ⚠️ **Pendent** (l'`icon.png` actual és 1536×1024, no quadrat) |
+| Icona quadrada 1024×1024 | ✅ Fet (`icon.png` és ara 1024×1024 quadrada, sense alfa) |
 | Compte Apple Developer | ⚠️ Pendent (acció teva) |
 | Política de privadesa publicada | ⚠️ Pendent |
 | Captures de pantalla | ⚠️ Pendent |
@@ -45,19 +45,19 @@ Aquests tràmits tenen **temps d'espera**, així que llança'ls primer mentre pr
 
 ---
 
-## Fase 1 — Preparar l'actiu que falta: la icona
+## Fase 1 — Icona ✅ (ja resolta) i splash (opcional)
 
-Apple **rebutja** automàticament si la icona no és quadrada 1024×1024 sense transparència.
+La icona quadrada ja està feta: `icon.png` és ara **1024×1024, RGB sense transparència**,
+amb el disseny original (petjada + "STEP QUIZ") centrat sobre el fons del tema (`#f8fafc`).
+L'original apaïsat s'ha conservat com a `icon-original-landscape.png` per si el necessites.
 
-1. Genera una **icona quadrada 1024×1024 px**, PNG, sense canal alfa ni cantonades
-   arrodonides (iOS ja les arrodoneix). Pots partir de l'`icon.png` actual reenquadrant-lo a quadrat.
-2. (Opcional) prepara un `splash.png` 2732×2732 per a la pantalla de càrrega.
-3. Genera els jocs d'icones/splash automàticament:
-   ```bash
-   npm install --save-dev @capacitor/assets
-   # posa icon.png (1024x1024) i splash.png (2732x2732) a assets/
-   npx capacitor-assets generate --ios
-   ```
+Encara pots, opcionalment, preparar un `splash.png` (2732×2732) per a la pantalla de càrrega,
+i generar automàticament tots els jocs d'icones/splash:
+```bash
+npm install --save-dev @capacitor/assets
+# posa icon.png (1024x1024, ja el tens) i splash.png (2732x2732) a assets/
+npx capacitor-assets generate --ios
+```
 
 ---
 
@@ -161,7 +161,7 @@ Category. És menys fricció. Pots migrar a Kids Category en una actualització 
 
 **Abans d'enviar:**
 - [ ] Compte Apple Developer actiu i Bundle ID `net.stepquiz.app` reservat.
-- [ ] Icona quadrada 1024×1024 generada i aplicada.
+- [x] Icona quadrada 1024×1024 generada i aplicada (`icon.png`).
 - [ ] Provat en mode avió en dispositiu real: tots els exercicis + KaTeX + teclat OK.
 - [ ] Build provada a TestFlight sense crashos.
 - [ ] Política de privadesa publicada i enllaçada.
