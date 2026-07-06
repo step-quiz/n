@@ -19,6 +19,7 @@ Aquí ens centrem en **què fer i en quin ordre** perquè la revisió sigui suau
 |----------|-------|
 | Funciona 100% offline (sense CDN) | ✅ Fet |
 | Capa nativa real (`native-bridge.js`) | ✅ Fet |
+| Qualificació nativa cap al professor (ClassKit/Schoolwork) | ✅ Fet (amb fallback a codi) — vegeu [CLASSKIT-SETUP.md](CLASSKIT-SETUP.md) |
 | Meta tags iOS + safe areas | ✅ Fet |
 | Config Capacitor (`package.json`, `capacitor.config.json`) | ✅ Fet |
 | Enllaços externs (YouTube) i donacions (Ko-fi) | ✅ Eliminats |
@@ -108,10 +109,13 @@ Escriu-hi (en anglès) alguna cosa com:
 
 > Step Quiz is an offline educational math app for secondary-school students (ESO and
 > Batxillerat). It works **completely offline** — no internet connection required.
-> It uses **native iOS capabilities**: native share sheet to send the verification code
-> to the teacher, on-device persistence of the student's progress/history, local
-> notifications for practice reminders, and haptic feedback in the exercises.
-> No personal data is collected or transmitted. No ads, no external links, no purchases.
+> It uses **native iOS capabilities**: grades are reported natively via **ClassKit** to the
+> student's teacher through **Schoolwork** (in Apple School Manager environments), encrypted
+> via iCloud; when ClassKit is unavailable (personal iPads), the app falls back to a local
+> verification code the student can share. It also uses on-device persistence of the student's
+> progress/history, local notifications for practice reminders, and haptic feedback.
+> No personal data is collected or transmitted to our servers or any third party.
+> No ads, no external links, no purchases.
 > To test: open any exercise from the home screen, answer the questions, and at the end
 > tap "Comparteix el codi" to see the native share flow.
 

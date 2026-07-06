@@ -296,6 +296,30 @@ function injectSharedHTML() {
         };
         const btnRow = finalScreen.querySelector('#final-results > div:last-child');
         if (btnRow) btnRow.appendChild(shareBtn);
+
+        // Bàner de confirmació ClassKit: si la nota s'ha enviat al professor
+        // de forma nativa, ho comuniquem i atenuem el flux del codi.
+        const banner = document.createElement('div');
+        banner.id = 'classkit-banner';
+        banner.style.cssText = 'display:none;margin-top:12px;padding:10px 14px;border-radius:10px;'
+            + 'background:#dcfce7;color:#166534;font-weight:600;text-align:center;';
+        banner.textContent = '✅ Nota enviada al professor/a (Schoolwork)';
+        if (btnRow) btnRow.appendChild(banner);
+
+        function applyGradeState(via) {
+            if (via === 'classkit') {
+                banner.style.display = 'block';
+                // El codi passa a ser secundari (encara disponible per si de cas)
+                const copiar = finalScreen.querySelector('#btn-copiar');
+                if (copiar) copiar.style.opacity = '0.55';
+                shareBtn.style.opacity = '0.55';
+            }
+        }
+        // Si ja s'ha resolt abans de pintar, o quan es resolgui després:
+        if (window._gradeReported === 'classkit') applyGradeState('classkit');
+        document.addEventListener('stepquiz:grade-reported', function (e) {
+            applyGradeState(e && e.detail && e.detail.via);
+        }, { once: true });
     }
 }
 
@@ -496,6 +520,30 @@ async function copiarResultats() {
             window._shareVerificationCode = function () {
                 return window.StepQuizNative.shareCode(output, exName);
             };
+
+            // CASCADA DE QUALIFICACIÓ:
+            // 1) Intenta reportar la nota nativament via ClassKit (entorn escolar
+            //    Apple School Manager). Si funciona, el professor la rep de forma
+            //    xifrada per Schoolwork i NO cal el codi.
+            // 2) Si ClassKit no hi és (iPad personal), es manté el flux del codi.
+            const exId = (typeof EXERCISE_NAMES === 'object' && exCode) ? exCode : exName;
+            window._gradeReported = 'pending';
+            if (typeof window.StepQuizNative.reportGrade === 'function') {
+                window.StepQuizNative
+                    .reportGrade(exId, exName, notaSobre10 / 10)
+                    .then(function (res) {
+                        window._gradeReported = (res === 'classkit') ? 'classkit' : 'code';
+                        // Notifica la UI perquè s'actualitzi si cal
+                        try {
+                            document.dispatchEvent(new CustomEvent('stepquiz:grade-reported', {
+                                detail: { via: window._gradeReported }
+                            }));
+                        } catch (e) {}
+                    })
+                    .catch(function () { window._gradeReported = 'code'; });
+            } else {
+                window._gradeReported = 'code';
+            }
         } catch (e) { /* no bloquejar mai el flux si la capa nativa falla */ }
     }
 

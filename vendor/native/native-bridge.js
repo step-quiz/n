@@ -74,6 +74,54 @@
   }
 
   // ─────────────────────────────────────────────────────────────────────────
+  // 2b. CLASSKIT — reportar la qualificació de manera nativa al professor
+  //     (Apple School Manager + Schoolwork). Camí preferent; si no hi és,
+  //     el codi que crida aquesta funció ha de caure al flux "copiar codi".
+  // ─────────────────────────────────────────────────────────────────────────
+  const _classkitState = { checked: false, available: false, published: {} };
+
+  /** Comprova (una sola vegada, amb memòria) si ClassKit és operatiu aquí. */
+  async function classkitAvailable() {
+    if (_classkitState.checked) return _classkitState.available;
+    _classkitState.checked = true;
+    const CK = plugin('ClassKitReporter');
+    if (!CK) { _classkitState.available = false; return false; }
+    try {
+      const r = await CK.isAvailable();
+      _classkitState.available = !!(r && r.available);
+    } catch (e) {
+      _classkitState.available = false;
+    }
+    return _classkitState.available;
+  }
+
+  /**
+   * Reporta la nota d'un exercici. Retorna:
+   *   'classkit'  → s'ha reportat de manera nativa (èxit, cap còpia necessària)
+   *   false       → ClassKit no disponible o ha fallat → el cridant ha de
+   *                 mostrar el flux de "copiar/compartir codi" com a alternativa.
+   * @param identifier  id estable de l'exercici (p.ex. 'enters')
+   * @param title       títol llegible (p.ex. 'Nombres enters')
+   * @param score01     nota normalitzada 0.0–1.0
+   */
+  async function reportGrade(identifier, title, score01) {
+    if (!(await classkitAvailable())) return false;
+    const CK = plugin('ClassKitReporter');
+    try {
+      // Publica el context de l'exercici un sol cop per sessió.
+      if (!_classkitState.published[identifier]) {
+        const p = await CK.publishActivity({ identifier, title });
+        if (p && p.ok) _classkitState.published[identifier] = true;
+        else return false;
+      }
+      const r = await CK.reportScore({ identifier, score: score01 });
+      return (r && r.ok) ? 'classkit' : false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
   // 3. PREFERENCES — persistència nativa del progrés
   // ─────────────────────────────────────────────────────────────────────────
   async function saveProgress(key, value) {
@@ -194,6 +242,7 @@
     isNative,
     hapticSuccess, hapticError, hapticTap,
     shareCode,
+    classkitAvailable, reportGrade,
     saveProgress, loadProgress, appendHistory, getHistory,
     requestNotificationPermission, schedulePracticeReminder, cancelPracticeReminder,
     exportReport,
